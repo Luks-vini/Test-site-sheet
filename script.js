@@ -1,6 +1,6 @@
 const SHEET_ID = '1GKw3MCOvujgw-_A1LzGYCd_PGNVgrBleTvUMhuewhWE'; // ID da planilha
 const API_KEY = 'AIzaSyBEVWAB3OsWf4SkotdFwR0Eu2R3GaKbXz0'; // Chave de API
-const SHEET_NAME = 'Dados Site'; // Nome da guia (confira no Google Sheets)
+const SHEET_NAME = 'Dados Site'; // Nome da aba da planilha
 
 document.getElementById('dataForm').addEventListener('submit', function(event) {
     event.preventDefault();
@@ -10,7 +10,8 @@ document.getElementById('dataForm').addEventListener('submit', function(event) {
 });
 
 function appendData(data) {
-    const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${SHEET_NAME}!A2:H:append?valueInputOption=RAW&key=${API_KEY}`;
+    // URL para adicionar dados na próxima linha vazia
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${SHEET_NAME}!A1:H1:append?valueInputOption=RAW&key=${API_KEY}`;
 
     fetch(url, {
         method: 'POST',
@@ -23,9 +24,7 @@ function appendData(data) {
     })
     .then(response => {
         if (!response.ok) {
-            return response.json().then(err => {
-                throw new Error(`Erro na requisição: ${err.error.message}`);
-            });
+            throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`);
         }
         return response.json();
     })
@@ -35,19 +34,18 @@ function appendData(data) {
     })
     .catch(error => {
         console.error('Erro ao inserir dados:', error);
-        document.getElementById('message').textContent = error.message;
+        document.getElementById('message').textContent = 'Erro ao inserir dados. Verifique o console para mais detalhes.';
     });
 }
 
 function loadData() {
+    // URL para carregar todos os dados da planilha
     const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${SHEET_NAME}!A2:H?key=${API_KEY}`;
 
     fetch(url)
     .then(response => {
         if (!response.ok) {
-            return response.json().then(err => {
-                throw new Error(`Erro ao carregar dados: ${err.error.message}`);
-            });
+            throw new Error(`Erro ao carregar dados: ${response.status} ${response.statusText}`);
         }
         return response.json();
     })
@@ -65,13 +63,12 @@ function loadData() {
                 actionCell.innerHTML = `<button onclick="editData(${index + 2})">Editar</button> <button onclick="deleteData(${index + 2})">Excluir</button>`;
             });
         } else {
-            console.warn('Nenhum dado encontrado na planilha.');
+            console.log('Nenhum dado encontrado na planilha.');
         }
     })
     .catch(error => console.error('Erro ao carregar dados:', error));
 }
 
-// Funções de pesquisa e exclusão (mantidas iguais)
 function searchData() {
     const searchValue = document.getElementById('searchInput').value;
     fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${SHEET_NAME}!A2:H?key=${API_KEY}`)
