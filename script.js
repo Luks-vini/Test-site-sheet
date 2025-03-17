@@ -1,5 +1,5 @@
-const SHEET_ID = '1GKw3MCOvujgw-_A1LzGYCd_PGNVgrBleTvUMhuewhWE'; // ID da planilha
-const API_KEY = 'AIzaSyBEVWAB3OsWf4SkotdFwR0Eu2R3GaKbXz0'; // Chave de API
+const SHEET_ID = '1UmO5Nuh4myBiZxqH3U3icmkkzGysUpjEeAMyrVekwkA'; // ID da planilha
+const API_KEY = 'AIzaSyC1UDGTRm6aMgipsKLKPrsa8Eri237Ni8E'; // Chave de API
 const SHEET_NAME = 'Dados Site'; // Nome da aba da planilha
 
 document.getElementById('dataForm').addEventListener('submit', function(event) {
@@ -10,8 +10,7 @@ document.getElementById('dataForm').addEventListener('submit', function(event) {
 });
 
 function appendData(data) {
-    // URL para adicionar dados na próxima linha vazia
-    const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${SHEET_NAME}!A1:H1:append?valueInputOption=RAW&key=${API_KEY}`;
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${SHEET_NAME}!A1:append?valueInputOption=USER_ENTERED&key=${API_KEY}`;
 
     fetch(url, {
         method: 'POST',
@@ -19,6 +18,8 @@ function appendData(data) {
             'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+            range: `${SHEET_NAME}!A1`,
+            majorDimension: 'ROWS',
             values: [data]
         })
     })
@@ -39,7 +40,6 @@ function appendData(data) {
 }
 
 function loadData() {
-    // URL para carregar todos os dados da planilha
     const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${SHEET_NAME}!A2:H?key=${API_KEY}`;
 
     fetch(url)
@@ -91,8 +91,29 @@ function searchData() {
 }
 
 function deleteData(rowIndex) {
-    fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${SHEET_NAME}!A${rowIndex}:H${rowIndex}?key=${API_KEY}`, {
-        method: 'DELETE',
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${SHEET_NAME}!A${rowIndex}:H${rowIndex}?key=${API_KEY}`;
+
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            requests: [
+                {
+                    updateCells: {
+                        range: {
+                            sheetId: SHEET_ID,
+                            startRowIndex: rowIndex - 1,
+                            endRowIndex: rowIndex,
+                            startColumnIndex: 0,
+                            endColumnIndex: 8
+                        },
+                        fields: 'userEnteredValue'
+                    }
+                }
+            ]
+        })
     })
     .then(response => response.json())
     .then(data => {
@@ -100,6 +121,32 @@ function deleteData(rowIndex) {
         loadData();
     })
     .catch(error => console.error('Erro ao excluir dados:', error));
+}
+
+function editData(rowIndex) {
+    const newData = prompt("Insira os novos dados separados por vírgula:");
+    if (newData) {
+        const dataArray = newData.split(',');
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${SHEET_NAME}!A${rowIndex}:H${rowIndex}?valueInputOption=USER_ENTERED&key=${API_KEY}`;
+
+        fetch(url, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                range: `${SHEET_NAME}!A${rowIndex}:H${rowIndex}`,
+                majorDimension: 'ROWS',
+                values: [dataArray]
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Dados editados com sucesso:', data);
+            loadData();
+        })
+        .catch(error => console.error('Erro ao editar dados:', error));
+    }
 }
 
 // Carregar dados ao iniciar
