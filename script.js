@@ -1,6 +1,6 @@
-const SHEET_ID = '1jLGdcmLq-4BgaYwXN9WewsH4slUDTwKA5H4XEsMIv5w';
-const API_KEY = 'AIzaSyDJcmG7-_yl0TXrbRbF6u4U0lfvmL-SXhA';
-const SHEET_NAME = 'Dados Site';
+const SHEET_ID = '1GKw3MCOvujgw-_A1LzGYCd_PGNVgrBleTvUMhuewhWE'; // ID da planilha
+const API_KEY = 'AIzaSyBEVWAB3OsWf4SkotdFwR0Eu2R3GaKbXz0'; // Chave de API
+const SHEET_NAME = 'Dados Site'; // Nome da guia (confira no Google Sheets)
 
 document.getElementById('dataForm').addEventListener('submit', function(event) {
     event.preventDefault();
@@ -10,7 +10,7 @@ document.getElementById('dataForm').addEventListener('submit', function(event) {
 });
 
 function appendData(data) {
-    const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${SHEET_NAME}!A2:H:append?valueInputOption=USER_ENTERED&key=${API_KEY}`;
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${SHEET_NAME}!A2:H:append?valueInputOption=RAW&key=${API_KEY}`;
 
     fetch(url, {
         method: 'POST',
@@ -18,24 +18,24 @@ function appendData(data) {
             'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-            range: `${SHEET_NAME}!A2:H2`,
-            majorDimension: 'ROWS',
             values: [data]
         })
     })
     .then(response => {
         if (!response.ok) {
-            throw new Error('Erro na requisição: ' + response.statusText);
+            return response.json().then(err => {
+                throw new Error(`Erro na requisição: ${err.error.message}`);
+            });
         }
         return response.json();
     })
     .then(data => {
         document.getElementById('message').textContent = 'Dados inseridos com sucesso!';
-        loadData(); // Recarrega os dados após a inserção
+        loadData();
     })
     .catch(error => {
         console.error('Erro ao inserir dados:', error);
-        document.getElementById('message').textContent = 'Erro ao inserir dados. Verifique o console para mais detalhes.';
+        document.getElementById('message').textContent = error.message;
     });
 }
 
@@ -45,7 +45,9 @@ function loadData() {
     fetch(url)
     .then(response => {
         if (!response.ok) {
-            throw new Error('Erro na requisição: ' + response.statusText);
+            return response.json().then(err => {
+                throw new Error(`Erro ao carregar dados: ${err.error.message}`);
+            });
         }
         return response.json();
     })
@@ -63,70 +65,44 @@ function loadData() {
                 actionCell.innerHTML = `<button onclick="editData(${index + 2})">Editar</button> <button onclick="deleteData(${index + 2})">Excluir</button>`;
             });
         } else {
-            tableBody.innerHTML = '<tr><td colspan="9">Nenhum dado encontrado.</td></tr>';
+            console.warn('Nenhum dado encontrado na planilha.');
         }
     })
-    .catch(error => {
-        console.error('Erro ao carregar dados:', error);
-        document.getElementById('message').textContent = 'Erro ao carregar dados. Verifique o console para mais detalhes.';
-    });
+    .catch(error => console.error('Erro ao carregar dados:', error));
 }
 
+// Funções de pesquisa e exclusão (mantidas iguais)
 function searchData() {
     const searchValue = document.getElementById('searchInput').value;
-    const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${SHEET_NAME}!A2:H?key=${API_KEY}`;
-
-    fetch(url)
-    .then(response => {
-        if (!response.ok) {
-            throw new Error('Erro na requisição: ' + response.statusText);
-        }
-        return response.json();
-    })
+    fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${SHEET_NAME}!A2:H?key=${API_KEY}`)
+    .then(response => response.json())
     .then(data => {
         const filteredData = data.values.filter(row => row[0] === searchValue);
         const tableBody = document.getElementById('dataTable').getElementsByTagName('tbody')[0];
         tableBody.innerHTML = '';
-        if (filteredData.length > 0) {
-            filteredData.forEach(row => {
-                const newRow = tableBody.insertRow();
-                row.forEach((cell, cellIndex) => {
-                    const newCell = newRow.insertCell(cellIndex);
-                    newCell.textContent = cell;
-                });
-                const actionCell = newRow.insertCell(row.length);
-                actionCell.innerHTML = `<button onclick="editData(${data.values.indexOf(row) + 2})">Editar</button> <button onclick="deleteData(${data.values.indexOf(row) + 2})">Excluir</button>`;
+        filteredData.forEach(row => {
+            const newRow = tableBody.insertRow();
+            row.forEach((cell, cellIndex) => {
+                const newCell = newRow.insertCell(cellIndex);
+                newCell.textContent = cell;
             });
-        } else {
-            tableBody.innerHTML = '<tr><td colspan="9">Nenhum resultado encontrado.</td></tr>';
-        }
+            const actionCell = newRow.insertCell(row.length);
+            actionCell.innerHTML = `<button onclick="editData(${data.values.indexOf(row) + 2})">Editar</button> <button onclick="deleteData(${data.values.indexOf(row) + 2})">Excluir</button>`;
+        });
     })
-    .catch(error => {
-        console.error('Erro ao pesquisar dados:', error);
-        document.getElementById('message').textContent = 'Erro ao pesquisar dados. Verifique o console para mais detalhes.';
-    });
+    .catch(error => console.error('Erro ao pesquisar dados:', error));
 }
 
 function deleteData(rowIndex) {
-    const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${SHEET_NAME}!A${rowIndex}:H${rowIndex}?key=${API_KEY}`;
-
-    fetch(url, {
+    fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${SHEET_NAME}!A${rowIndex}:H${rowIndex}?key=${API_KEY}`, {
         method: 'DELETE',
     })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error('Erro na requisição: ' + response.statusText);
-        }
-        return response.json();
-    })
+    .then(response => response.json())
     .then(data => {
         console.log('Dados excluídos com sucesso:', data);
-        loadData(); // Recarrega os dados após a exclusão
+        loadData();
     })
-    .catch(error => {
-        console.error('Erro ao excluir dados:', error);
-        document.getElementById('message').textContent = 'Erro ao excluir dados. Verifique o console para mais detalhes.';
-    });
+    .catch(error => console.error('Erro ao excluir dados:', error));
 }
 
 // Carregar dados ao iniciar
