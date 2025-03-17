@@ -71,7 +71,9 @@ function loadData() {
 
 function searchData() {
     const searchValue = document.getElementById('searchInput').value;
-    fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${SHEET_NAME}!A2:H?key=${API_KEY}`)
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${SHEET_NAME}!A2:H?key=${API_KEY}`;
+
+    fetch(url)
     .then(response => response.json())
     .then(data => {
         const filteredData = data.values.filter(row => row[0] === searchValue);
@@ -91,7 +93,9 @@ function searchData() {
 }
 
 function deleteData(rowIndex) {
-    fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${SHEET_NAME}!A${rowIndex}:H${rowIndex}?key=${API_KEY}`, {
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${SHEET_NAME}!A${rowIndex}:H${rowIndex}?key=${API_KEY}`;
+
+    fetch(url, {
         method: 'DELETE',
     })
     .then(response => response.json())
